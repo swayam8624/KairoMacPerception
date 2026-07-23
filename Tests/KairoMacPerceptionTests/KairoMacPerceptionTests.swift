@@ -66,6 +66,21 @@ final class KairoMacPerceptionTests: XCTestCase {
         XCTAssertFalse(CompanionRequest(command: .approveProposal).validForCompanion())
     }
 
+    func testAuthenticatedCompanionMessagesRejectTamperingAndReplay() throws {
+        let offer = PairingOffer(hostNonce: Data(repeating: 7, count: 16), expiresAt: Date().addingTimeInterval(60))
+        let key = try PairingKeyDerivation.derive(code: "123456", offer: offer, companionNonce: Data(repeating: 9, count: 16))
+        var sender = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
+        var receiver = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
+        let envelope = try sender.seal(CompanionRequest(command: .requestPreview, displayID: 1))
+        XCTAssertEqual(try receiver.open(envelope).command, .requestPreview)
+        XCTAssertThrowsError(try receiver.open(envelope)) { XCTAssertEqual($0 as? ControlSecurityError, .replayedSequence) }
+
+        let second = try sender.seal(CompanionRequest(command: .requestPreview, displayID: 1))
+        let tampered = AuthenticatedControlEnvelope(sessionID: second.sessionID, sequence: second.sequence,
+            payload: Data("tampered".utf8), tag: second.tag)
+        XCTAssertThrowsError(try receiver.open(tampered)) { XCTAssertEqual($0 as? ControlSecurityError, .invalidAuthenticationTag) }
+    }
+
     private func makeImage() throws -> CGImage {
         let colorSpace = CGColorSpaceCreateDeviceRGB()
         let context = try XCTUnwrap(CGContext(data: nil, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 0,

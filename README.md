@@ -50,6 +50,27 @@ swift run KairoControlLab
 The first real capture asks for macOS Screen Recording access. That permission
 is required for the host to see a display and can be revoked in System Settings.
 
+## iPad Companion
+
+Generate the installable iPadOS project and open it in Xcode:
+
+```sh
+xcodegen generate
+open KairoCompanion.xcodeproj
+```
+
+The target declares local-network and Bonjour usage and shares the control
+contract with the Mac. Pairing derives a short-lived per-session key from an
+explicitly confirmed six-digit code and device nonces; every envelope carries a
+session identifier, a monotonic sequence, and an HMAC-SHA256 tag. Tampered,
+stale, and replayed messages are rejected before command validation. The host
+must rate-limit pairing attempts and remain the only execution authority.
+
+The current app deliberately queues only typed preview/approve/reject/discard
+requests. Network.framework discovery and the host bridge will be enabled only
+when the host can map each request to a live, exact KairoAI approval and a
+reversible action receipt. It cannot send arbitrary action arguments.
+
 ## Integration
 
 The host converts a recognized stable rectangle into KairoAI evidence, routes
