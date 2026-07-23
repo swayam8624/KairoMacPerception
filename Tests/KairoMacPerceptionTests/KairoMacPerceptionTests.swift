@@ -72,13 +72,35 @@ final class KairoMacPerceptionTests: XCTestCase {
         var sender = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
         var receiver = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
         let envelope = try sender.seal(CompanionRequest(command: .requestPreview, displayID: 1))
-        XCTAssertEqual(try receiver.open(envelope).command, .requestPreview)
-        XCTAssertThrowsError(try receiver.open(envelope)) { XCTAssertEqual($0 as? ControlSecurityError, .replayedSequence) }
+        XCTAssertEqual(try receiver.openRequest(envelope).command, .requestPreview)
+        XCTAssertThrowsError(try receiver.openRequest(envelope)) { XCTAssertEqual($0 as? ControlSecurityError, .replayedSequence) }
 
         let second = try sender.seal(CompanionRequest(command: .requestPreview, displayID: 1))
         let tampered = AuthenticatedControlEnvelope(sessionID: second.sessionID, sequence: second.sequence,
-            payload: Data("tampered".utf8), tag: second.tag)
-        XCTAssertThrowsError(try receiver.open(tampered)) { XCTAssertEqual($0 as? ControlSecurityError, .invalidAuthenticationTag) }
+            kind: second.kind, payload: Data("tampered".utf8), tag: second.tag)
+        XCTAssertThrowsError(try receiver.openRequest(tampered)) { XCTAssertEqual($0 as? ControlSecurityError, .invalidAuthenticationTag) }
+    }
+
+    func testAuthenticatedHostStatusAndFragmentedFramesRoundTrip() throws {
+        let offer = PairingOffer(hostNonce: Data(repeating: 3, count: 16), expiresAt: Date().addingTimeInterval(60))
+        let key = try PairingKeyDerivation.derive(code: "654321", offer: offer, companionNonce: Data(repeating: 4, count: 16))
+        var host = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
+        var companion = ControlSessionAuthenticator(sessionID: offer.sessionID, key: key)
+        let status = HostStatus(callID: "preview.1", state: .previewVerified, detail: "In memory only", reversible: true)
+        let envelope = try host.seal(status)
+        let frame = try ControlFrameCodec.encode(.hostStatus(envelope))
+        var decoder = ControlFrameDecoder()
+        XCTAssertTrue(try decoder.append(frame.prefix(3)).isEmpty)
+        let packets = try decoder.append(frame.dropFirst(3))
+        guard case let .hostStatus(received)? = packets.first else { return XCTFail("Expected host status") }
+        XCTAssertEqual(try companion.openStatus(received), status)
+    }
+
+    func testFrameDecoderRejectsOversizedLengthBeforeAllocation() {
+        var decoder = ControlFrameDecoder()
+        var length = UInt32(ControlFrameCodec.maximumPayloadBytes + 1).bigEndian
+        let header = withUnsafeBytes(of: &length) { Data($0) }
+        XCTAssertThrowsError(try decoder.append(header)) { XCTAssertEqual($0 as? ControlFrameError, .frameTooLarge) }
     }
 
     private func makeImage() throws -> CGImage {

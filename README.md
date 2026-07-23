@@ -71,6 +71,13 @@ requests. Network.framework discovery and the host bridge will be enabled only
 when the host can map each request to a live, exact KairoAI approval and a
 reversible action receipt. It cannot send arbitrary action arguments.
 
+`KairoControlProtocol` now also supplies the byte-stream boundary for that
+bridge: length-prefixed JSON packets are capped at 1 MiB and decoded
+incrementally, so fragmented TCP receives do not change semantics or cause an
+unauthenticated peer to force unbounded buffering. Both companion commands and
+host status updates are authenticated after pairing; only the initial pairing
+offer and companion nonce travel before a session key exists.
+
 ## Integration
 
 The host converts a recognized stable rectangle into KairoAI evidence, routes

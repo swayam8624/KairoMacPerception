@@ -108,8 +108,77 @@ public enum PairingKeyDerivation {
 public struct AuthenticatedControlEnvelope: Codable, Sendable, Equatable {
     public let sessionID: UUID
     public let sequence: UInt64
+    public let kind: AuthenticatedPayloadKind
     public let payload: Data
     public let tag: Data
+}
+
+public enum AuthenticatedPayloadKind: String, Codable, Sendable, Equatable {
+    case companionRequest
+    case hostStatus
+}
+
+/// Messages sent before a session is authenticated contain only pairing
+/// material. All actionable commands and all host-state updates are carried in
+/// an authenticated envelope after pairing succeeds.
+public enum ControlWirePacket: Codable, Sendable, Equatable {
+    case pairingOffer(PairingOffer)
+    case companionNonce(sessionID: UUID, nonce: Data)
+    case companionCommand(AuthenticatedControlEnvelope)
+    case hostStatus(AuthenticatedControlEnvelope)
+}
+
+public enum ControlFrameError: Error, Sendable, Equatable {
+    case frameTooLarge
+    case malformedFrame
+}
+
+/// Bounded, length-prefixed framing for a byte-stream transport such as
+/// Network.framework's TCP connection. The limit prevents a peer from making
+/// the host buffer unbounded input before authentication.
+public enum ControlFrameCodec {
+    public static let maximumPayloadBytes = 1 << 20
+
+    public static func encode(_ packet: ControlWirePacket) throws -> Data {
+        let payload = try JSONEncoder().encode(packet)
+        guard payload.count <= maximumPayloadBytes else { throw ControlFrameError.frameTooLarge }
+        var byteCount = UInt32(payload.count).bigEndian
+        var frame = Data()
+        withUnsafeBytes(of: &byteCount) { frame.append(contentsOf: $0) }
+        frame.append(payload)
+        return frame
+    }
+}
+
+public struct ControlFrameDecoder: Sendable {
+    private var buffered = Data()
+
+    public init() {}
+
+    public mutating func append(_ bytes: Data) throws -> [ControlWirePacket] {
+        buffered.append(bytes)
+        var packets: [ControlWirePacket] = []
+        while buffered.count >= MemoryLayout<UInt32>.size {
+            let header = buffered.prefix(MemoryLayout<UInt32>.size)
+            let length = header.withUnsafeBytes { rawBuffer in
+                rawBuffer.loadUnaligned(as: UInt32.self).bigEndian
+            }
+            guard length <= UInt32(ControlFrameCodec.maximumPayloadBytes) else {
+                buffered.removeAll(keepingCapacity: false)
+                throw ControlFrameError.frameTooLarge
+            }
+            let fullLength = MemoryLayout<UInt32>.size + Int(length)
+            guard buffered.count >= fullLength else { break }
+            let payload = buffered.subdata(in: MemoryLayout<UInt32>.size..<fullLength)
+            buffered.removeFirst(fullLength)
+            do {
+                packets.append(try JSONDecoder().decode(ControlWirePacket.self, from: payload))
+            } catch {
+                throw ControlFrameError.malformedFrame
+            }
+        }
+        return packets
+    }
 }
 
 /// Stateful integrity boundary for the future Network.framework transport.
@@ -127,35 +196,58 @@ public struct ControlSessionAuthenticator: Sendable {
     }
 
     public mutating func seal(_ request: CompanionRequest) throws -> AuthenticatedControlEnvelope {
-        let payload = try JSONEncoder().encode(request)
-        let sequence = nextSendSequence
-        nextSendSequence &+= 1
-        return .init(sessionID: sessionID, sequence: sequence, payload: payload,
-            tag: Data(HMAC<SHA256>.authenticationCode(for: signingData(sessionID: sessionID, sequence: sequence,
-                payload: payload), using: key)))
+        try seal(request, kind: .companionRequest)
     }
 
-    public mutating func open(_ envelope: AuthenticatedControlEnvelope) throws -> CompanionRequest {
-        guard envelope.sessionID == sessionID else { throw ControlSecurityError.sessionMismatch }
-        guard envelope.sequence > highestReceivedSequence else { throw ControlSecurityError.replayedSequence }
-        let signedPayload = signingData(sessionID: envelope.sessionID,
-            sequence: envelope.sequence, payload: envelope.payload)
-        guard HMAC<SHA256>.isValidAuthenticationCode(envelope.tag, authenticating: signedPayload, using: key) else {
-            throw ControlSecurityError.invalidAuthenticationTag
-        }
-        let request: CompanionRequest
-        do { request = try JSONDecoder().decode(CompanionRequest.self, from: envelope.payload) }
-        catch { throw ControlSecurityError.invalidPayload }
+    public mutating func seal(_ status: HostStatus) throws -> AuthenticatedControlEnvelope {
+        try seal(status, kind: .hostStatus)
+    }
+
+    public mutating func openRequest(_ envelope: AuthenticatedControlEnvelope) throws -> CompanionRequest {
+        guard envelope.kind == .companionRequest else { throw ControlSecurityError.invalidPayload }
+        let request: CompanionRequest = try open(envelope, as: CompanionRequest.self)
         guard request.validForCompanion() else { throw ControlSecurityError.invalidPayload }
-        highestReceivedSequence = envelope.sequence
         return request
     }
 
-    private func signingData(sessionID: UUID, sequence: UInt64, payload: Data) -> Data {
+    public mutating func openStatus(_ envelope: AuthenticatedControlEnvelope) throws -> HostStatus {
+        guard envelope.kind == .hostStatus else { throw ControlSecurityError.invalidPayload }
+        return try open(envelope, as: HostStatus.self)
+    }
+
+    private mutating func seal<Payload: Encodable>(_ value: Payload,
+        kind: AuthenticatedPayloadKind) throws -> AuthenticatedControlEnvelope {
+        let payload = try JSONEncoder().encode(value)
+        let sequence = nextSendSequence
+        nextSendSequence &+= 1
+        return .init(sessionID: sessionID, sequence: sequence, kind: kind, payload: payload,
+            tag: Data(HMAC<SHA256>.authenticationCode(for: signingData(sessionID: sessionID, sequence: sequence, kind: kind,
+                payload: payload), using: key)))
+    }
+
+    private mutating func open<Payload: Decodable>(_ envelope: AuthenticatedControlEnvelope,
+        as _: Payload.Type) throws -> Payload {
+        guard envelope.sessionID == sessionID else { throw ControlSecurityError.sessionMismatch }
+        guard envelope.sequence > highestReceivedSequence else { throw ControlSecurityError.replayedSequence }
+        let signedPayload = signingData(sessionID: envelope.sessionID,
+            sequence: envelope.sequence, kind: envelope.kind, payload: envelope.payload)
+        guard HMAC<SHA256>.isValidAuthenticationCode(envelope.tag, authenticating: signedPayload, using: key) else {
+            throw ControlSecurityError.invalidAuthenticationTag
+        }
+        let value: Payload
+        do { value = try JSONDecoder().decode(Payload.self, from: envelope.payload) }
+        catch { throw ControlSecurityError.invalidPayload }
+        highestReceivedSequence = envelope.sequence
+        return value
+    }
+
+    private func signingData(sessionID: UUID, sequence: UInt64, kind: AuthenticatedPayloadKind, payload: Data) -> Data {
         var data = Data(sessionID.uuidString.utf8)
         data.append(0)
         var bigEndianSequence = sequence.bigEndian
         withUnsafeBytes(of: &bigEndianSequence) { data.append(contentsOf: $0) }
+        data.append(Data(kind.rawValue.utf8))
+        data.append(0)
         data.append(payload)
         return data
     }
