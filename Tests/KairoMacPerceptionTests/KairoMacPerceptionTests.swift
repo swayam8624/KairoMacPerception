@@ -1,6 +1,7 @@
 import CoreGraphics
 import XCTest
 @testable import KairoMacPerception
+@testable import KairoControlProtocol
 
 final class KairoMacPerceptionTests: XCTestCase {
     func testRectangleGestureRequiresStableTwoHandPinches() {
@@ -36,5 +37,41 @@ final class KairoMacPerceptionTests: XCTestCase {
         XCTAssertTrue(discarded)
         XCTAssertEqual(finalCount, 0)
         XCTAssertNil(discardedPreview)
+    }
+
+    func testApprovedPreviewRejectsStaleStateAndCanAlwaysUndo() async throws {
+        let image = try makeImage()
+        let frame = CapturedFrame(image: image, displayID: 1, capturedAt: Date())
+        let region = try XCTUnwrap(NormalizedRectangle(first: .init(x: 0.25, y: 0.25), second: .init(x: 0.75, y: 0.75)))
+        let approved = try XCTUnwrap(ApprovedPreviewRequest(callID: "device.preview.1", approvalID: "approval.1",
+            activeApplicationID: "com.example.host", expectedStateFingerprint: "state.42"))
+        let executor = PreviewActionExecutor()
+        let stale = try await executor.execute(approved: approved, observedStateFingerprint: "state.old", frame: frame, region: region)
+        XCTAssertEqual(stale.decision, .staleState)
+
+        let created = try await executor.execute(approved: approved, observedStateFingerprint: "state.42", frame: frame, region: region)
+        let verified = await executor.verify(created)
+        let discarded = await executor.undo(created)
+        let missing = await executor.verify(created)
+        XCTAssertEqual(created.decision, .created)
+        XCTAssertEqual(verified.decision, .verified)
+        XCTAssertEqual(discarded.decision, .discarded)
+        XCTAssertEqual(missing.decision, .missingPreview)
+    }
+
+    func testCompanionProtocolCannotProvideArbitraryActionArguments() {
+        XCTAssertTrue(CompanionRequest(command: .requestPreview, displayID: 1).validForCompanion())
+        XCTAssertFalse(CompanionRequest(command: .requestPreview, callID: "unexpected", displayID: 1).validForCompanion())
+        XCTAssertTrue(CompanionRequest(command: .approveProposal, callID: "device.preview.1").validForCompanion())
+        XCTAssertFalse(CompanionRequest(command: .approveProposal).validForCompanion())
+    }
+
+    private func makeImage() throws -> CGImage {
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        let context = try XCTUnwrap(CGContext(data: nil, width: 32, height: 32, bitsPerComponent: 8, bytesPerRow: 0,
+            space: colorSpace, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue))
+        context.setFillColor(CGColor(red: 0, green: 0, blue: 0, alpha: 1))
+        context.fill(CGRect(x: 0, y: 0, width: 32, height: 32))
+        return try XCTUnwrap(context.makeImage())
     }
 }

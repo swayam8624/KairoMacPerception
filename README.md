@@ -11,6 +11,8 @@ capture or hand landmarks.
 - Vision hand-pose landmarks mapped to Kairo-owned normalized evidence values.
 - A deterministic two-pinch, stable-frame rectangle gesture recognizer.
 - In-memory cropped capture previews with explicit discard.
+- Externally authorized preview execution, verification, and unconditional undo.
+- A transport-neutral control protocol ready for the Phase 4 Mac/iPad companion.
 
 The package does not record continuously, write files, change device settings,
 click UI, edit Premiere projects, or execute application commands.
@@ -20,6 +22,10 @@ click UI, edit Premiere projects, or execute application commands.
 The Phase 3 action creates only an in-memory `CapturePreview`. It remains in
 the `CapturePreviewStore` until `discard(id:)` removes it. Export/save is not
 implemented, so this package cannot overwrite or delete user data.
+
+`PreviewActionExecutor` requires an `ApprovedPreviewRequest` from a host that
+has already passed the exact proposal through KairoAI policy. It rejects stale
+state and its `undo` operation only discards the in-memory preview.
 
 ## Build
 

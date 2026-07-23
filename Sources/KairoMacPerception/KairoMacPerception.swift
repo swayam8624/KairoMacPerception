@@ -209,3 +209,80 @@ public actor CapturePreviewStore {
 
     public var count: Int { previews.count }
 }
+
+/// Opaque authorization material created by the host only after KairoAI has
+/// validated an exact proposal and obtained the required approval. The native
+/// adapter treats it as an identity binding, not as a replacement for policy.
+public struct ApprovedPreviewRequest: Sendable, Equatable {
+    public let callID: String
+    public let approvalID: String
+    public let activeApplicationID: String
+    public let expectedStateFingerprint: String
+
+    public init?(callID: String, approvalID: String, activeApplicationID: String,
+        expectedStateFingerprint: String) {
+        guard !callID.isEmpty, !approvalID.isEmpty, !activeApplicationID.isEmpty,
+              !expectedStateFingerprint.isEmpty else { return nil }
+        self.callID = callID
+        self.approvalID = approvalID
+        self.activeApplicationID = activeApplicationID
+        self.expectedStateFingerprint = expectedStateFingerprint
+    }
+}
+
+public enum PreviewExecutionDecision: Sendable, Equatable {
+    case created
+    case verified
+    case discarded
+    case staleState
+    case missingPreview
+}
+
+public struct PreviewExecutionReceipt: Sendable, Equatable {
+    public let callID: String
+    public let approvalID: String
+    public let previewID: UUID
+    public let stateFingerprint: String
+    public let decision: PreviewExecutionDecision
+}
+
+/// Reversible Phase 3 executor. A caller must provide an authorization issued
+/// by the KairoAI host and the state fingerprint that was checked immediately
+/// before execution. The only side effect is adding an image to an in-memory
+/// store; `undo` always discards it.
+public actor PreviewActionExecutor {
+    private let store: CapturePreviewStore
+
+    public init(store: CapturePreviewStore = CapturePreviewStore()) {
+        self.store = store
+    }
+
+    public func execute(approved: ApprovedPreviewRequest, observedStateFingerprint: String,
+        frame: CapturedFrame, region: NormalizedRectangle) async throws -> PreviewExecutionReceipt {
+        guard observedStateFingerprint == approved.expectedStateFingerprint else {
+            return .init(callID: approved.callID, approvalID: approved.approvalID, previewID: UUID(),
+                stateFingerprint: observedStateFingerprint, decision: .staleState)
+        }
+        let preview = try await store.create(from: frame, region: region)
+        return .init(callID: approved.callID, approvalID: approved.approvalID, previewID: preview.id,
+            stateFingerprint: observedStateFingerprint, decision: .created)
+    }
+
+    public func verify(_ receipt: PreviewExecutionReceipt) async -> PreviewExecutionReceipt {
+        guard receipt.decision == .created, await store.preview(id: receipt.previewID) != nil else {
+            return .init(callID: receipt.callID, approvalID: receipt.approvalID, previewID: receipt.previewID,
+                stateFingerprint: receipt.stateFingerprint, decision: .missingPreview)
+        }
+        return .init(callID: receipt.callID, approvalID: receipt.approvalID, previewID: receipt.previewID,
+            stateFingerprint: receipt.stateFingerprint, decision: .verified)
+    }
+
+    public func undo(_ receipt: PreviewExecutionReceipt) async -> PreviewExecutionReceipt {
+        guard await store.discard(id: receipt.previewID) else {
+            return .init(callID: receipt.callID, approvalID: receipt.approvalID, previewID: receipt.previewID,
+                stateFingerprint: receipt.stateFingerprint, decision: .missingPreview)
+        }
+        return .init(callID: receipt.callID, approvalID: receipt.approvalID, previewID: receipt.previewID,
+            stateFingerprint: receipt.stateFingerprint, decision: .discarded)
+    }
+}
