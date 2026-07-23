@@ -36,6 +36,20 @@ swift test
 Tests use synthetic hand points and a generated image. They never request
 Screen Recording access or capture the desktop.
 
+## Mac Control Lab
+
+`KairoControlLab` is a SwiftUI host for the first reversible workflow. It lists
+shareable displays, requires an explicit proposal and approval, creates an
+in-memory center crop, verifies it, and discards it on request. It has no save,
+export, accessibility, Premiere, Finder, or system-settings command.
+
+```sh
+swift run KairoControlLab
+```
+
+The first real capture asks for macOS Screen Recording access. That permission
+is required for the host to see a display and can be revoked in System Settings.
+
 ## Integration
 
 The host converts a recognized stable rectangle into KairoAI evidence, routes

@@ -123,7 +123,7 @@ public struct CapturedFrame: @unchecked Sendable {
 
 /// ScreenCaptureKit adapter. It does not start a persistent recording stream,
 /// write a file, or expose captured pixels outside the caller's process.
-public struct ScreenCaptureProvider {
+public struct ScreenCaptureProvider: Sendable {
     public init() {}
 
     public func availableDisplays() async throws -> [CGDirectDisplayID] {
