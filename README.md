@@ -78,6 +78,13 @@ unauthenticated peer to force unbounded buffering. Both companion commands and
 host status updates are authenticated after pairing; only the initial pairing
 offer and companion nonce travel before a session key exists.
 
+`ControlPacketChannel` is the `Network.framework` transport adapter shared by
+the host and iPad target. It owns an `NWConnection`, sends only framed typed
+packets, incrementally decodes bounded receives, and fails closed on malformed
+frames. It does not grant authority: a host must still complete pairing,
+authenticate envelopes, validate KairoAI approval, and map the request to the
+reversible preview executor.
+
 ## Integration
 
 The host converts a recognized stable rectangle into KairoAI evidence, routes
