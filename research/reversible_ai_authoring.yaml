@@ -1,0 +1,13 @@
+schema: kairo.research-track.v1
+track: R5
+title: Reversible AI-native authoring
+state: hypothesis
+role: local_perception_context_and_permission_boundary
+problem: Perception-assisted authoring can feed stale, excessive or irrelevant local context into actions.
+hypothesis: Explicit local context snapshots with permission-scoped capture and provenance can improve task grounding without increasing unsafe action rate.
+baselines: [no_perception_context, unrestricted_context_snapshot, manual_context_selection]
+workloads: [editor_state_grounding, asset_selection, scene_diagnostics, visual_reference_tasks]
+metrics: [grounding_accuracy, stale_context_rate, unnecessary_context_bytes, unsafe_change_rate, task_completion_time]
+ablations: [no_provenance, no_scope_filter, no_freshness_check]
+failure_cases: [stale_window_state, wrong_application_focus, permission_denied, ambiguous_selection]
+falsification: Reject if scoped perception does not improve grounding or privacy/context efficiency versus manual/unrestricted context while preserving task success.
