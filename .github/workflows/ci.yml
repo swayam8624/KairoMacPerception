@@ -1,0 +1,42 @@
+name: KairoMacPerception CI
+
+on:
+  push:
+    branches: [main, 'fix/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  macos-swift:
+    name: macOS Swift 6 build and tests
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Record Swift toolchain
+        run: swift --version
+
+      - name: Build release libraries and CLI
+        run: swift build --configuration release
+
+      - name: Run package tests
+        run: swift test --parallel
+
+      - name: Upload test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: macperception-test-diagnostics
+          path: |
+            .build/**/*.xcresult
+            .build/**/*.log
+          if-no-files-found: ignore
+          retention-days: 7
