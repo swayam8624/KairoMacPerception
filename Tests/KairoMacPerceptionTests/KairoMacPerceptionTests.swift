@@ -1,3 +1,9 @@
+// TEACHING MAP — Tests/KairoMacPerceptionTests/KairoMacPerceptionTests.swift
+// Swift package tests covering perception/protocol behavior with fixtures. Native
+// camera/screen APIs require explicit platform permissions and are not established by
+// synthetic packet tests.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import CoreGraphics
 import XCTest
 @testable import KairoMacPerception
