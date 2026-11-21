@@ -1,3 +1,9 @@
+// SOURCE STUDY MAP:
+// Core macOS perception and reversible preview layer. Uses Vision/ScreenCaptureKit/CoreGraphics to turn
+// observed hand poses and captured frames into an in-memory region proposal; the host must approve before
+// PreviewActionExecutor runs.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
