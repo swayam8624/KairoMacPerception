@@ -1,3 +1,8 @@
+// SOURCE STUDY MAP:
+// Transport-neutral request/status/pairing message schema and frame codec. CompanionRequest may propose
+// specific actions but cannot manufacture Mac-host approval; ControlPacketChannel carries bytes only.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import CryptoKit
 import Foundation
 
