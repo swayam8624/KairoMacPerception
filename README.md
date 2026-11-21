@@ -91,3 +91,12 @@ The host converts a recognized stable rectangle into KairoAI evidence, routes
 it through `Kairo.AI.DeviceAgent`, asks for exact approval via
 `Kairo.AI.ToolPolicy`, then invokes this preview-only action. The resulting
 receipt and verification are stored through KairoAI replay contracts.
+
+
+## Source learning pathway
+
+See [the linked reading itinerary](docs/SOURCE_READING_ORDER.md) for function/API relationships, source ownership and verification paths.
+
+## License and learning
+
+Original contributions may be studied, modified and developed further under [LICENSE](LICENSE). External libraries, host SDKs and other third-party assets retain their own terms. See [STATUS.md](STATUS.md) for the verified feature boundary.
