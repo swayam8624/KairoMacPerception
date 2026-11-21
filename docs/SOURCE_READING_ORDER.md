@@ -24,3 +24,26 @@ ScreenCaptureKit/Vision adapters generate observations; KairoAI intent routing p
 - Follow upstream interfaces before implementation details; distinguish implemented, host-verified and planned features.
 - Run available tests at a pinned commit and consult [STATUS.md](../STATUS.md) / [STATUS.yaml](../STATUS.yaml) before declaring completion.
 - Reuse original contributions under [LICENSE](../LICENSE), subject to third-party code and asset terms.
+
+
+## Complete source-file inventory
+
+After the curated teaching path, follow this deterministic inventory of first-party source, scripts, shaders, and tests. Grouping is a suggested learning order, not an indication that every function is already annotated. Vendored dependencies, ROMs, binaries, data, media, and generated evidence are excluded.
+
+### Entry points and build (1)
+
+1. [`Package.swift`](../Package.swift)
+
+### Implementation and other source (5)
+
+1. [`CompanionApp/KairoCompanionApp.swift`](../CompanionApp/KairoCompanionApp.swift)
+2. [`Sources/KairoControlLab/KairoControlLabApp.swift`](../Sources/KairoControlLab/KairoControlLabApp.swift)
+3. [`Sources/KairoControlProtocol/ControlPacketChannel.swift`](../Sources/KairoControlProtocol/ControlPacketChannel.swift)
+4. [`Sources/KairoControlProtocol/KairoControlProtocol.swift`](../Sources/KairoControlProtocol/KairoControlProtocol.swift)
+5. [`Sources/KairoMacPerception/KairoMacPerception.swift`](../Sources/KairoMacPerception/KairoMacPerception.swift)
+
+### Verification and tests (1)
+
+1. [`Tests/KairoMacPerceptionTests/KairoMacPerceptionTests.swift`](../Tests/KairoMacPerceptionTests/KairoMacPerceptionTests.swift)
+
+Snapshot totals: 7 first-party source/build/test files, 17 tracked files overall. Re-audit when files are renamed or added.
