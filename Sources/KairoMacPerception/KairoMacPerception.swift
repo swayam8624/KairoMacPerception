@@ -1,3 +1,9 @@
+// SOURCE STUDY MAP:
+// Core macOS perception and reversible preview layer. Uses Vision/ScreenCaptureKit/CoreGraphics to turn
+// observed hand poses and captured frames into an in-memory region proposal; the host must approve before
+// PreviewActionExecutor runs.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
@@ -83,6 +89,9 @@ public struct RectangleGestureRecognizer: Sendable {
 
     public init() {}
 
+    /// Feed one timestamped set of tracked hands into the stability gate.
+    /// A single pinch observation cannot authorize a crop: the recognizer
+    /// waits for consistent bounded rectangles across successive frames.
     public mutating func consume(_ frame: HandPoseFrame) -> GestureDecision {
         let candidates = frame.hands.filter {
             $0.confidence >= minimumConfidence && $0.pinchDistance <= maximumPinchDistance
@@ -131,6 +140,9 @@ public struct ScreenCaptureProvider: Sendable {
         return content.displays.map(\.displayID)
     }
 
+    /// Request an image of an explicitly selected display using macOS capture
+    /// APIs. System Screen Recording permission is still required; neither
+    /// this provider nor a remote companion can bypass that OS decision.
     public func capture(displayID: CGDirectDisplayID) async throws -> CapturedFrame {
         let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first(where: { $0.displayID == displayID }) else {
@@ -257,6 +269,9 @@ public actor PreviewActionExecutor {
         self.store = store
     }
 
+    /// Execute only a host-provided approved preview request after checking
+    /// that current observed state matches the approved state fingerprint.
+    /// No generic application action or disk export occurs at this boundary.
     public func execute(approved: ApprovedPreviewRequest, observedStateFingerprint: String,
         frame: CapturedFrame, region: NormalizedRectangle) async throws -> PreviewExecutionReceipt {
         guard observedStateFingerprint == approved.expectedStateFingerprint else {
@@ -277,6 +292,8 @@ public actor PreviewActionExecutor {
             stateFingerprint: receipt.stateFingerprint, decision: .verified)
     }
 
+    /// Discard the matching in-memory preview to reverse this narrow action.
+    /// This is not a general undo mechanism for arbitrary system operations.
     public func undo(_ receipt: PreviewExecutionReceipt) async -> PreviewExecutionReceipt {
         guard await store.discard(id: receipt.previewID) else {
             return .init(callID: receipt.callID, approvalID: receipt.approvalID, previewID: receipt.previewID,

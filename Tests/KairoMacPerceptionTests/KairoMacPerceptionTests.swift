@@ -1,3 +1,8 @@
+// SOURCE STUDY MAP:
+// Synthetic tests covering gesture stabilization, normalized rectangles, capture-store disposal and
+// protocol semantics. No real screen recording is required to run test fixtures.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import CoreGraphics
 import XCTest
 @testable import KairoMacPerception

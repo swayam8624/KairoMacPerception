@@ -1,3 +1,8 @@
+// SOURCE STUDY MAP:
+// Transport-neutral request/status/pairing message schema and frame codec. CompanionRequest may propose
+// specific actions but cannot manufacture Mac-host approval; ControlPacketChannel carries bytes only.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import CryptoKit
 import Foundation
 
@@ -33,6 +38,9 @@ public struct CompanionRequest: Codable, Sendable, Equatable {
     /// The iPad can request or approve a known proposal, but cannot provide
     /// arbitrary action arguments. The Mac still validates application state,
     /// exact KairoAI approval, and reversibility before it executes anything.
+    /// Validate allowed request *shape* by command. The result does not
+    /// establish identity, authenticate a session, or authorize execution;
+    /// ControlSessionAuthenticator and the Mac host enforce those layers.
     public func validForCompanion() -> Bool {
         switch command {
         case .requestPreview: return displayID != nil && callID == nil
@@ -195,6 +203,9 @@ public struct ControlSessionAuthenticator: Sendable {
         self.key = key
     }
 
+    /// Serialize and authenticate a typed companion request using session
+    /// state and sequencing. Approval for its requested action is still
+    /// checked separately by the Mac host after envelope verification.
     public mutating func seal(_ request: CompanionRequest) throws -> AuthenticatedControlEnvelope {
         try seal(request, kind: .companionRequest)
     }
@@ -203,6 +214,9 @@ public struct ControlSessionAuthenticator: Sendable {
         try seal(status, kind: .hostStatus)
     }
 
+    /// Verify authenticated envelope and session sequencing *before*
+    /// decoding and accepting the request payload; then pass its command to
+    /// the host's state/policy validator, not directly to action execution.
     public mutating func openRequest(_ envelope: AuthenticatedControlEnvelope) throws -> CompanionRequest {
         guard envelope.kind == .companionRequest else { throw ControlSecurityError.invalidPayload }
         let request: CompanionRequest = try open(envelope, as: CompanionRequest.self)

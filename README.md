@@ -1,5 +1,7 @@
 # KairoMacPerception
 
+> **Source-study guide:** Study [docs/SOURCE_READING_ORDER.md](docs/SOURCE_READING_ORDER.md) to follow capture, stable hand gestures, explicit preview approval, authenticated protocol framing and reversible discard. Original source is proposed under the [MIT License](LICENSE); macOS privacy permissions remain required.
+
 `KairoMacPerception` is the macOS-native Phase 2 and Phase 3 adapter for the
 Kairo device agent. It uses Apple frameworks instead of reimplementing screen
 capture or hand landmarks.
