@@ -1,3 +1,8 @@
+// SOURCE STUDY MAP:
+// Companion UI stub for pairing-code entry and queued typed requests. This does not itself establish a
+// channel or execute Mac actions; the eventual host must authenticate and authorize every request.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import SwiftUI
 
 @main
