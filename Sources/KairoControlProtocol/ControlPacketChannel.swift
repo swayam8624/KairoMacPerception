@@ -1,3 +1,9 @@
+// TEACHING MAP — Sources/KairoControlProtocol/ControlPacketChannel.swift
+// Typed channel for control packets between observation producers and consumers. Message
+// ordering, identity and validation are separate from permission to execute a proposed
+// action.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import Foundation
 import Network
 
