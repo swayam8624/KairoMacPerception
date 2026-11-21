@@ -1,3 +1,9 @@
+// SOURCE STUDY MAP:
+// NWConnection byte-stream adapter: feeds frame decoder and caller callbacks; host validation, identity
+// and authorization happen above the connection. Lifecycle and concurrency require explicit queue/lock
+// handling.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import Foundation
 import Network
 
