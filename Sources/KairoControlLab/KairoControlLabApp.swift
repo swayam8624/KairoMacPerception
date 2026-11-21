@@ -1,3 +1,9 @@
+// SOURCE STUDY MAP:
+// SwiftUI host for locally reviewing a reversible preview. ControlLabModel owns the proposal, displays,
+// receipt and in-memory preview lifetime; Core perception supplies capture and KairoControlProtocol
+// describes status.
+// See docs/SOURCE_READING_ORDER.md for safe host/companion call trails.
+
 import AppKit
 import CoreGraphics
 import KairoControlProtocol
