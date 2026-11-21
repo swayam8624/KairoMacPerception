@@ -31,6 +31,8 @@ public final class ControlPacketChannel: @unchecked Sendable {
         self.init(connection: NWConnection(host: host, port: port, using: .tcp))
     }
 
+    /// Install frame/error callbacks once and begin reading NWConnection.
+    /// The resulting packet stream is not itself an authorization decision.
     public func start(onPacket: @escaping PacketHandler, onFailure: @escaping FailureHandler) {
         lock.lock()
         guard !started else { lock.unlock(); return }
@@ -50,6 +52,8 @@ public final class ControlPacketChannel: @unchecked Sendable {
         receiveNext()
     }
 
+    /// Frame and send one packet over the existing transport. Callers must
+    /// authenticate command envelopes and handle send failure separately.
     public func send(_ packet: ControlWirePacket) {
         do {
             let frame = try ControlFrameCodec.encode(packet)
