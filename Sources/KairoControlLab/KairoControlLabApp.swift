@@ -1,3 +1,9 @@
+// TEACHING MAP — Sources/KairoControlLab/KairoControlLabApp.swift
+// Control-lab UI harness for demonstrating captured evidence and explicit user-authorized
+// actions. It should consume protocol messages without bypassing permission checks in the
+// perception/action boundary.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import AppKit
 import CoreGraphics
 import KairoControlProtocol

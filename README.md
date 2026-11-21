@@ -1,3 +1,7 @@
+> **Learn from the implementation:** [READING_ORDER.md](READING_ORDER.md) links the code and tests in a recommended sequence and explains how the major APIs interact.
+>
+> **Open source:** Original KairoMacPerception code is under the [MIT license](LICENSE), permitting learning, modification and further development. Third-party libraries, platform APIs and external datasets retain their own terms; code-level annotation and testing are separate acceptance steps.
+
 # KairoMacPerception
 
 `KairoMacPerception` is the macOS-native Phase 2 and Phase 3 adapter for the

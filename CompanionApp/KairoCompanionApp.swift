@@ -1,3 +1,9 @@
+// TEACHING MAP — CompanionApp/KairoCompanionApp.swift
+// Standalone macOS companion app. It hosts user-visible controls, but screen capture and
+// intent verification are delegated to KairoMacPerception and the typed KairoControlProtocol
+// APIs.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import SwiftUI
 
 @main

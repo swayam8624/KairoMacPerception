@@ -1,3 +1,8 @@
+// TEACHING MAP — Sources/KairoControlProtocol/KairoControlProtocol.swift
+// Shared observation/action protocol types. A gesture or screen observation is data;
+// downstream host logic must approve and verify any effect before calling OS actions.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import CryptoKit
 import Foundation
 
