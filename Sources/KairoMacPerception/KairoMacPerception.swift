@@ -1,3 +1,9 @@
+// TEACHING MAP — Sources/KairoMacPerception/KairoMacPerception.swift
+// macOS capture/perception adapter using platform APIs such as ScreenCaptureKit/Vision. It
+// interprets bounded visual evidence; downstream protocol/control apps own user consent and
+// action policy.
+// See READING_ORDER.md for the cross-target API, privacy and permission boundaries.
+
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
