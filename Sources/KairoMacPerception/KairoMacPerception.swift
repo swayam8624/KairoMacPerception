@@ -1,3 +1,4 @@
+// TEACHING MAP: Swift/macOS perception adapter wraps OS capture/vision APIs and publishes bounded observation data to KairoAI or companion UI. Permission and device state belong to the host, not to a simulated test response.
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
