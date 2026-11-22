@@ -1,5 +1,7 @@
 # KairoMacPerception
 
+**Study the implementation:** [linked file-reading order](docs/SOURCE_READING_ORDER.md) · [Perception evidence through host approval and verification](docs/PERCEPTION_TO_APPROVED_CONTROL.md).
+
 `KairoMacPerception` is the macOS-native Phase 2 and Phase 3 adapter for the
 Kairo device agent. It uses Apple frameworks instead of reimplementing screen
 capture or hand landmarks.
