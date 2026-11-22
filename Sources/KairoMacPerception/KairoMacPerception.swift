@@ -1,4 +1,19 @@
-// TEACHING MAP: Swift/macOS perception adapter wraps OS capture/vision APIs and publishes bounded observation data to KairoAI or companion UI. Permission and device state belong to the host, not to a simulated test response.
+// TEACHING MODULE: macOS ScreenCaptureKit and Vision bridge trusted
+// OS-authorized frames to bounded, typed observation and preview data.
+// A captured display frame contains pixels, not a grant of permission
+// to perform a click/drag or access credentials. Normalized coordinates
+// must be converted only against their corresponding frame dimensions.
+//
+// RectangleGestureRecognizer uses landmarks/confidence to propose a
+// region; CapturePreview validates/crops it and holds temporary results.
+// ApprovedPreviewRequest, execution receipt, verify and undo are
+// host-controlled action contracts, not arbitrary autonomous OS control.
+// KairoAI DeviceAgent then maps trusted observations to narrow proposals,
+// and ToolPolicy must still authorize a corresponding side effect.
+//
+// Permission revocation, frame lifetime and Swift Sendable boundaries
+// need native macOS tests. Passing a mock Vision fixture is not proof
+// of live screen-capture consent or working UI interactions.
 import CoreGraphics
 import Foundation
 import ScreenCaptureKit
@@ -124,6 +139,8 @@ public struct CapturedFrame: @unchecked Sendable {
 
 /// ScreenCaptureKit adapter. It does not start a persistent recording stream,
 /// write a file, or expose captured pixels outside the caller's process.
+// One-shot authorized screen-frame capture. The host must establish
+// Screen Recording permission; this type cannot grant it itself.
 public struct ScreenCaptureProvider: Sendable {
     public init() {}
 
@@ -154,6 +171,8 @@ public enum CaptureError: Error, Sendable {
 
 /// Vision is the Phase 2 landmark source. Kairo receives only normalized
 /// points/confidence, keeping Apple framework objects out of its action policy.
+// Convert a CGImage to landmark evidence. The host decides whether
+// confidence and freshness permit use in an action proposal.
 public struct VisionHandPoseProvider {
     public init() {}
 
@@ -214,6 +233,8 @@ public actor CapturePreviewStore {
 /// Opaque authorization material created by the host only after KairoAI has
 /// validated an exact proposal and obtained the required approval. The native
 /// adapter treats it as an identity binding, not as a replacement for policy.
+// Approval binds a specific visual preview action and its target.
+// It does not authorize unrelated process or filesystem operations.
 public struct ApprovedPreviewRequest: Sendable, Equatable {
     public let callID: String
     public let approvalID: String
