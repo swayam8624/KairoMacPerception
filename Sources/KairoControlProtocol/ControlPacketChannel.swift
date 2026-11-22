@@ -1,9 +1,21 @@
+// TEACHING MODULE: This Network.framework layer frames and transports
+// ControlWirePacket values over NWConnection. It does not perform pairing,
+// verify human approval or execute the semantic action in each packet.
+// Those trust decisions are above the byte channel in the control protocol.
+//
+// The decoder keeps partial packet state across arbitrary receive chunks.
+// Handler registration and cancellation interact with the locked state and
+// delegate queue; host code must not assume packets arrive on the UI thread.
+// Transport success is not proof that the device executed an action.
 import Foundation
 import Network
 
 /// A transport adapter for the authenticated control protocol. It owns only a
 /// byte stream: pairing, approval, and action execution remain explicit host
 /// responsibilities above this class.
+// @unchecked Sendable places synchronization responsibility on this
+// class. NSLock protects mutable handlers/decoder lifecycle; preserve
+// the same ownership invariants when extending receive/error paths.
 public final class ControlPacketChannel: @unchecked Sendable {
     public typealias PacketHandler = @Sendable (ControlWirePacket) -> Void
     public typealias FailureHandler = @Sendable (Error) -> Void
