@@ -1,4 +1,5 @@
 # Teaching source map — KairoMacPerception
+**Worked source walkthrough:** [Screen/Vision observation → approval → verified reversible control](PERCEPTION_TO_APPROVED_CONTROL.md).
 
 Swift/macOS perception adapters providing structured observations, not arbitrary OS control.
 
